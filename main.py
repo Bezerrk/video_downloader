@@ -34,6 +34,7 @@ def download_yt_audio():
 
     except Exception as e:
         print("Erro:", e)
+    url_entry.delete(0, tk.END)
 
 def download_yt_vid():
     url = url_entry.get()
@@ -64,6 +65,7 @@ def download_yt_vid():
 
     except Exception as e:
         print("Erro:", e)
+    url_entry.delete(0, tk.END)
 
 #region window_settings
 download_screen = customtkinter.CTk()
