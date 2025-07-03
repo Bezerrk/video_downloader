@@ -10,6 +10,7 @@ database = sqlite3.connect('historico.db')
 command = database.cursor()
 
 command.execute("CREATE TABLE IF NOT EXISTS historico_de_downloads (url text,title text,extension text)")
+#command.execute("DROP TABLE historico_de_downloads")
 
 def download_yt_audio():
     url = url_entry.get()
@@ -25,7 +26,8 @@ def download_yt_audio():
         caminho_salvar = fd.asksaveasfilename(
             defaultextension=".m4a",
             filetypes=[("Audio Files", "*.m4a"), ("Todos os arquivos", "*.*")],
-            title="Salvar áudio como..."
+            title="Salvar áudio como...",
+            parent=download_screen
         )
 
         if caminho_salvar:
@@ -56,7 +58,8 @@ def download_yt_vid():
         caminho_salvar = fd.asksaveasfilename(
             defaultextension=".mp4",
             filetypes=[("Video Files", "*.mp4"), ("Todos os arquivos", "*.*")],
-            title="Salvar vídeo como..."
+            title="Salvar vídeo como...",
+            parent=download_screen
         )
 
         if caminho_salvar:
@@ -73,20 +76,66 @@ def download_yt_vid():
         print("Erro:", e)
     url_entry.delete(0, tk.END)
 
+def baixar_novamente(url, formato,parent):
+    try:
+        yt = YouTube(url, on_progress_callback=on_progress)
+        print(f"Baixando novamente: {yt.title} ({formato})")
+
+        if formato.upper() == ".MP4":
+            ys = yt.streams.get_highest_resolution()
+            defaultext = ".mp4"
+            filetype = ("Video Files", "*.mp4")
+        else:
+            ys = yt.streams.get_audio_only()
+            defaultext = ".m4a"
+            filetype = ("Audio Files", "*.m4a")
+
+        caminho_salvar = fd.asksaveasfilename(
+            defaultextension=defaultext,
+            filetypes=[filetype, ("Todos os arquivos", "*.*")],
+            title=f"Salvar {formato.upper()} como...",
+            parent=parent
+        )
+
+        if caminho_salvar:
+            ys.download(
+                output_path=os.path.dirname(caminho_salvar),
+                filename=os.path.basename(caminho_salvar)
+            )
+            print("Download concluído.")
+        else:
+            print("Download cancelado.")
+
+    except Exception as e:
+        print("Erro ao baixar novamente:", e)
+
+
 def open_history():
     history_screen = customtkinter.CTkToplevel(download_screen)
     history_screen.title("Download history")
     history_screen.geometry("600x300")
     history_screen.minsize(600,300)
-    #history_screen.maxsize(600,300)
-    history_screen.attributes("-topmost", True)
+    history_screen.maxsize(600,300)
+    history_screen.attributes("-topmost",True)
 
     history_scroll = customtkinter.CTkScrollableFrame(master=history_screen)
     history_scroll.pack(padx = 20, pady = 20, fill = 'both', expand = True)
-    command.execute("SELECT title, extension FROM historico_de_downloads")
+    command.execute("SELECT rowid, url, title, extension FROM historico_de_downloads")
     for line in command:
-        label = customtkinter.CTkLabel(master=history_scroll, text=line)
-        label.pack(pady=5, padx=10)
+        frame = customtkinter.CTkFrame(master=history_scroll)
+        frame.pack(padx=5,pady=2, fill="both", expand= True)
+        frame.configure(fg_color="#9b9b9b")
+        frame2 = customtkinter.CTkFrame(master=frame, width=200, height=100)
+        frame2.grid(column=0,row=0,padx=2,pady=5,sticky='e')
+        frame3 = customtkinter.CTkFrame(master=frame, width=200, height=100)
+        frame3.grid(column=1,row=0,padx=2,pady=5,sticky='e')
+        label = customtkinter.CTkLabel(master=frame2, text=line[0], wraplength=3)
+        label.pack(padx=5,pady=5)
+        label2 = customtkinter.CTkLabel(master=frame3, text=line[2], wraplength=420)
+        label2.pack(padx=5,pady=5)
+        dw_again = customtkinter.CTkButton(master=frame, text="Download",command=lambda u=line[1], f=line[3]: baixar_novamente(u, f,parent=history_screen))
+        dw_again.configure(width=70,height=30)
+        dw_again.grid(column=2,row=0,padx=5,pady=5,sticky='e')
 
 #region window_settings
 download_screen = customtkinter.CTk()
